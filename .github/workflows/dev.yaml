@@ -30,45 +30,45 @@ jobs:
           role-to-assume: arn:aws:iam::402609019580:role/GitHubActionsRole
           role-session-name: GithubActionsSession
 
-      #       - name: npm ci
-      #         run: npm ci
+            - name: npm ci
+              run: npm ci
 
-      #       - name: run integration test
-      #         run: npm run test
+            - name: run integration test
+              run: npm run test
 
-      #       - name: deploy to dev
-      #         run: npx sls deploy
+            - name: deploy to dev
+              run: npx sls deploy
 
-      #       - name: run acceptance tests
-      #         run: npm run acceptance
-      - name: npm ci
-        run: npm ci
+            - name: run acceptance tests
+              run: npm run acceptance
+      # - name: npm ci
+      #   run: npm ci
 
-      # this provisions a temporary stage called 'dev-ci'
-      - name: deploy temp environment
-        run: npx sls deploy -s dev-ci
+      # # this provisions a temporary stage called 'dev-ci'
+      # - name: deploy temp environment
+      #   run: npx sls deploy -s dev-ci
 
-      # this generates the .env file for the 'dev-ci' stage
-      - name: export env
-        run: npx sls export-env --all -s dev-ci
+      # # this generates the .env file for the 'dev-ci' stage
+      # - name: export env
+      #   run: npx sls export-env --all -s dev-ci
 
-      # apply seed data to dev-ci stage
-      - name: add seed data
-        run: node seed-restaurants.js
+      # # apply seed data to dev-ci stage
+      # - name: add seed data
+      #   run: node seed-restaurants.js
 
-      # this runs the integration test against the 'dev-ci' stage
-      # using the .env file that was captured earlier
-      - name: run integration test
-        run: npx cross-env TEST_MODE=handler jest
+      # # this runs the integration test against the 'dev-ci' stage
+      # # using the .env file that was captured earlier
+      # - name: run integration test
+      #   run: npx cross-env TEST_MODE=handler jest
 
-      # this runs the acceptance test against the 'dev-ci' stage
-      # using the .env file that was captured earlier
-      - name: run acceptance tests
-        run: npx cross-env TEST_MODE=http jest
+      # # this runs the acceptance test against the 'dev-ci' stage
+      # # using the .env file that was captured earlier
+      # - name: run acceptance tests
+      #   run: npx cross-env TEST_MODE=http jest
 
-      # delete the 'dev-ci' stage
-      - name: destroy temp environment
-        run: npx sls remove -s dev-ci
+      # # delete the 'dev-ci' stage
+      # - name: destroy temp environment
+      #   run: npx sls remove -s dev-ci
 
       # deploy to the ACTUAL dev stage
       # - name: deploy to dev
