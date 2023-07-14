@@ -1,43 +1,75 @@
-name: deploy dev
+# name: deploy dev
 
-on:
-  push:
-    branches: [main]
+# on:
+#   push:
+#     branches: [main]
 
-jobs:
-  deploy:
-    # this prevents concurrent builds
-    concurrency: dev-environment
+# jobs:
+#   deploy:
+#     # this prevents concurrent builds
+#     concurrency: dev-environment
 
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+#     # The type of runner that the job will run on
+#     runs-on: ubuntu-latest
 
-    # this is required for authenticating to AWS via the OIDC Provider we set up
-    permissions:
-      id-token: write
-      contents: write
+#     # this is required for authenticating to AWS via the OIDC Provider we set up
+#     permissions:
+#       id-token: write
+#       contents: write
 
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-west-2
-          role-to-assume: arn:aws:iam::402609019580:role/GitHubActionsRole
-          role-session-name: GithubActionsSession
+#     steps:
+#       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+#       - uses: actions/checkout@v3
+#       - uses: actions/setup-node@v3
+#         with:
+#           node-version: "18"
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v2
+#         with:
+#           aws-region: us-west-2
+#           role-to-assume: arn:aws:iam::402609019580:role/GitHubActionsRole
+#           role-session-name: GithubActionsSession
 
-      - name: npm ci
-        run: npm ci
+#       - name: npm ci
+#         run: npm ci
 
-      - name: run integration test
-        run: npm run test
+#       - name: run integration test
+#         run: npm run test
 
-      - name: deploy to dev
-        run: npx sls deploy
+#       - name: deploy to dev
+#         run: npx sls deploy
 
-      - name: run acceptance tests
-        run: npm run acceptance
+#       - name: run acceptance tests
+#         run: npm run acceptance
+- name: npm ci
+  run: npm ci
+
+# this provisions a temporary stage called 'dev-ci'
+- name: deploy temp environment
+  run: npx sls deploy -s dev-ci
+
+# this generates the .env file for the 'dev-ci' stage
+- name: export env
+  run: npx sls export-env --all -s dev-ci
+
+# apply seed data to dev-ci stage
+- name: add seed data
+  run: node seed-restaurants.js
+
+# this runs the integration test against the 'dev-ci' stage
+# using the .env file that was captured earlier
+- name: run integration test
+  run: npx cross-env TEST_MODE=handler jest
+
+# this runs the acceptance test against the 'dev-ci' stage
+# using the .env file that was captured earlier
+- name: run acceptance tests
+  run: npx cross-env TEST_MODE=http jest
+
+# delete the 'dev-ci' stage
+- name: destroy temp environment
+  run: npx sls remove -s dev-ci
+
+# deploy to the ACTUAL dev stage
+- name: deploy to dev
+  run: npx sls deploy
