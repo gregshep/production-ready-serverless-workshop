@@ -30,17 +30,17 @@ jobs:
           role-to-assume: arn:aws:iam::402609019580:role/GitHubActionsRole
           role-session-name: GithubActionsSession
 
-            - name: npm ci
-              run: npm ci
+      - name: npm ci
+        run: npm ci
 
-            - name: run integration test
-              run: npm run test
+      - name: run integration test
+        run: npm run test
 
-            - name: deploy to dev
-              run: npx sls deploy
+      - name: deploy to dev
+        run: npx sls deploy
 
-            - name: run acceptance tests
-              run: npm run acceptance
+      - name: run acceptance tests
+        run: npm run acceptance
       # - name: npm ci
       #   run: npm ci
 
