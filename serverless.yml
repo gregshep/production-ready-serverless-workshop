@@ -15,27 +15,21 @@ service: workshop-${self:custom.name}
 
 frameworkVersion: "3"
 
+plugins:
+  - serverless-export-env
+
 custom:
   name: gregoryshepherd
   export-env:
     overwrite: true
-  apiCloudFront:
-    domain: !Ref ApiGatewayRestApi
-    compress: true
-    cookies: none
-    headers:
-      - x-api-key
-    querystring:
-      - page
-      - per_page
-    priceClass: PriceClass_100
-    minimumProtocolVersion: TLSv1
 
 provider:
   name: aws
   region: us-west-2
   runtime: nodejs18.x
-  endpointType: REGIONAL
+
+  environment:
+    rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
 
   iam:
     role:
@@ -58,6 +52,7 @@ functions:
       restaurants_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/restaurants
       cognito_user_pool_id: !Ref CognitoUserPool
       cognito_client_id: !Ref WebCognitoUserPoolClient
+      cognito_server_client_id: !Ref ServerCognitoUserPoolClient
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -95,6 +90,7 @@ resources:
         KeySchema:
           - AttributeName: name
             KeyType: HASH
+
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -130,6 +126,7 @@ resources:
             Required: true
             StringAttributeConstraints:
               MinLength: "1"
+
     WebCognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
@@ -139,6 +136,7 @@ resources:
           - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
         PreventUserExistenceErrors: ENABLED
+
     ServerCognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
@@ -164,7 +162,3 @@ resources:
 
     CognitoUserPoolServerClientId:
       Value: !Ref ServerCognitoUserPoolClient
-
-plugins:
-  - serverless-export-env
-  - serverless-api-cloudfront
