@@ -28,9 +28,6 @@ provider:
   region: us-west-2
   runtime: nodejs18.x
 
-  environment:
-    rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
-
   iam:
     role:
       statements:
@@ -40,6 +37,8 @@ provider:
         - Effect: Allow
           Action: execute-api:Invoke
           Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${sls:stage}/GET/restaurants
+  environment:
+    rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
 
 functions:
   get-index:
@@ -58,7 +57,7 @@ functions:
     handler: functions/get-restaurants.handler
     events:
       - http:
-          path: /restaurants/
+          path: /restaurants
           method: get
           authorizer: aws_iam
     environment:
