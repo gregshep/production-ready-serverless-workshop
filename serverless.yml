@@ -46,6 +46,13 @@ provider:
         - Effect: Allow
           Action: kms:Decrypt
           Resource: ${ssm:/${self:service}/${sls:stage}/kmsArn}
+        - Effect: Allow
+          Action: events:PutEvents
+          Resource: !GetAtt EventBus.Arn
+        - Effect: Allow
+          Action: sns:Publish
+          Resource: !Ref RestaurantNotificationTopic
+
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
     serviceName: ${self:service}
@@ -66,6 +73,7 @@ functions:
       cognito_user_pool_id: !Ref CognitoUserPool
       cognito_client_id: !Ref WebCognitoUserPoolClient
       cognito_server_client_id: !Ref ServerCognitoUserPoolClient
+      orders_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/orders
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -89,6 +97,33 @@ functions:
             arn: !GetAtt CognitoUserPool.Arn
     environment:
       restaurants_table: !Ref RestaurantsTable
+
+  notify-restaurant:
+    handler: functions/notify-restaurant.handler
+    events:
+      - eventBridge:
+          eventBus: !Ref EventBus
+          pattern:
+            source:
+              - big-mouth
+            detail-type:
+              - order_placed
+    environment:
+      bus_name: !Ref EventBus
+      restaurant_notification_topic: !Ref RestaurantNotificationTopic
+
+  place-order:
+    handler: functions/place-order.handler
+    events:
+      - http:
+          path: /orders
+          method: post
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+    environment:
+      bus_name: !Ref EventBus
 
 # you can add CloudFormation resource templates here
 resources:
@@ -172,6 +207,14 @@ resources:
               - !Ref ApiGatewayRestApi
               - .execute-api.${aws:region}.amazonaws.com/${sls:stage}
 
+    EventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: order_events_${sls:stage}_${self:custom.name}
+
+    RestaurantNotificationTopic:
+      Type: AWS::SNS::Topic
+
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
@@ -187,3 +230,12 @@ resources:
 
     CognitoUserPoolServerClientId:
       Value: !Ref ServerCognitoUserPoolClient
+
+    EventBusName:
+      Value: !Ref EventBus
+
+    RestaurantNotificationTopicName:
+      Value: !GetAtt RestaurantNotificationTopic.TopicName
+
+    RestaurantNotificationTopicArn:
+      Value: !Ref RestaurantNotificationTopic
