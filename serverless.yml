@@ -31,6 +31,9 @@ custom:
       - CognitoUserPoolServerClientId
     output:
       file: ./.cfnoutputs.env
+  logLevel:
+    prod: ERROR
+    default: INFO
 
 provider:
   name: aws
@@ -44,6 +47,9 @@ provider:
     middy_cache_enabled: true
     middy_cache_expiry_milliseconds: 60000 # 1 mins
     ssmStage: ${param:ssmStage, sls:stage}
+    LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
+    POWERTOOLS_LOGGER_SAMPLE_RATE: 0.1
+    POWERTOOLS_LOGGER_LOG_EVENT: true
 
 functions:
   get-index:

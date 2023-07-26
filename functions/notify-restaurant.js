@@ -1,3 +1,6 @@
+const middy = require('@middy/core')
+const { Logger, injectLambdaContext } = require('@aws-lambda-powertools/logger')
+const logger = new Logger({ serviceName: process.env.serviceName })
 const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
 const eventBridge = new EventBridgeClient()
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns')
@@ -6,7 +9,9 @@ const sns = new SNSClient()
 const busName = process.env.bus_name
 const topicArn = process.env.restaurant_notification_topic
 
-module.exports.handler = async (event) => {
+module.exports.handler = middy(async (event) => {
+    logger.refreshSampleRateCalculation()
+
     const order = event.detail
     const publishCmd = new PublishCommand({
         Message: JSON.stringify(order),
@@ -15,7 +20,10 @@ module.exports.handler = async (event) => {
     await sns.send(publishCmd)
 
     const { restaurantName, orderId } = order
-    console.log(`notified restaurant [${restaurantName}] of order [${orderId}]`)
+    logger.debug('notified restaurant', {
+        restaurantName,
+        orderId
+    })
 
     const putEventsCmd = new PutEventsCommand({
         Entries: [{
@@ -27,5 +35,5 @@ module.exports.handler = async (event) => {
     })
     await eventBridge.send(putEventsCmd)
 
-    console.log(`published 'restaurant_notified' event to EventBridge`)
-}
+    logger.debug('published event', { DetailType: 'restaurant_notified' })
+}).use(injectLambdaContext(logger))
